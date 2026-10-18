@@ -1,0 +1,22 @@
+[
+  {"id": "en_short", "lang": "en", "group": "short", "speaker": "Ira", "description": "professional, Indian English accent, steady pace",
+   "text": "Hello! How can I help you today?"},
+  {"id": "en_medium", "lang": "en", "group": "medium", "speaker": "Ira", "description": "professional, Indian English accent, steady pace",
+   "text": "The quarterly report is ready, and I have shared it with the whole team for review."},
+  {"id": "en_long", "lang": "en", "group": "long", "speaker": "Ira", "description": "professional, Indian English accent, steady pace",
+   "text": "Good evening, passengers. Boarding for the flight to Bengaluru will begin shortly at gate twelve. Please keep your boarding pass ready, and thank you for your patience."},
+  {"id": "hinglish_short", "lang": "hinglish", "group": "short", "speaker": "Ira", "description": "happy, Hindi accent, steady pace",
+   "text": "Haan bhai, main bas paanch minute mein aa raha hoon."},
+  {"id": "hinglish_medium", "lang": "hinglish", "group": "medium", "speaker": "Ira", "description": "happy, Hindi accent, steady pace",
+   "text": "Kal ki meeting mein sabko hamara idea bahut pasand aaya, ab bas final deck ready karna hai."},
+  {"id": "hinglish_long", "lang": "hinglish", "group": "long", "speaker": "Ira", "description": "happy, Hindi accent, steady pace",
+   "text": "Yaar, aaj office mein itna kaam tha ki lunch bhi time pe nahi ho paya. Shaam ko traffic bhi bahut zyada tha, isliye ghar pahunchne mein do ghante lag gaye. Ab bas chai peeke aaram karna hai."},
+  {"id": "hi_short", "lang": "hi", "group": "short", "speaker": "Ira", "description": "happy, Hindi accent, steady pace",
+   "text": "नमस्ते, आज आपका दिन कैसा रहा?"},
+  {"id": "hi_medium", "lang": "hi", "group": "medium", "speaker": "Ira", "description": "happy, Hindi accent, steady pace",
+   "text": "मुझे कल सुबह दस बजे डॉक्टर के पास जाना है, कृपया मुझे याद दिला देना।"},
+  {"id": "hi_long", "lang": "hi", "group": "long", "speaker": "Ira", "description": "happy, Hindi accent, steady pace",
+   "text": "भारत एक विशाल देश है जहाँ अनेक भाषाएँ बोली जाती हैं। हर राज्य की अपनी संस्कृति, खान-पान और परंपराएँ हैं, और यही विविधता हमारे देश को खास बनाती है।"},
+  {"id": "hi_en_mixed_medium", "lang": "hi_en_mixed", "group": "medium", "speaker": "Ira", "description": "happy, Hindi accent, steady pace",
+   "text": "आज की meeting में सबको हमारा idea पसंद आया, अब coffee मेरी तरफ़ से!"}
+]

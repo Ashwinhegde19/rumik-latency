@@ -1,0 +1,7 @@
+torch==2.8.0
+transformers==4.57.6
+accelerate
+huggingface_hub[hf_transfer]
+safetensors
+soundfile
+numpy
