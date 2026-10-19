@@ -54,6 +54,7 @@ VARIANTS = {
     "c_kvb_man": dict(use_compile=True, kv_buckets=KVB, attn="manual"),
     "c_kvb_man_pf": dict(use_compile=True, kv_buckets=KVB, attn="manual", compile_prefill=True, prefill_buckets=PFB),
     "c_kvb_pf": dict(use_compile=True, kv_buckets=KVB, compile_prefill=True, prefill_buckets=PFB),
+    "c_kvb_f32": dict(use_compile=True, kv_buckets=KVB, attn="f32"),
     "c_kvb_f32_pf": dict(use_compile=True, kv_buckets=KVB, attn="f32", compile_prefill=True, prefill_buckets=PFB),
 }
 SR = 24000
@@ -99,7 +100,7 @@ def summarize_runs(rs: list[dict]) -> dict:
 
 @app.function(gpu=GPU, volumes={HF_CACHE: volume}, timeout=60 * 60)
 def run_fast(parts: str = "quality,variants", runs: int = 3, warmup: int = 3,
-             variant: str = "compile", n_tf_texts: int = 3, seeds: int = 2,
+             variant: str = "c_kvb_f32_pf", n_tf_texts: int = 3, seeds: int = 2,
              plan: str = "eager:hf_first,graphs:hf_first,graphs:stream,compile:hf_first,compile:stream",
              tf_extra: str = "") -> dict:
     import io
@@ -176,137 +177,205 @@ def run_fast(parts: str = "quality,variants", runs: int = 3, warmup: int = 3,
             print(f"built FastLM[{name}] in {perf_counter() - t:.1f}s", flush=True)
         return lms[name]
 
+    def asr_check() -> dict:
+        """Whisper-large-v3 CER: stock generate_audio + HF Mimi (model-card path) vs optimized streaming,
+        same texts and seeds (3 per text). Comparative only: romanized Hinglish refs vs Whisper output
+        are noisy in absolute terms."""
+        import unicodedata
+
+        from transformers import pipeline
+
+        def resample_24k_16k(x: np.ndarray) -> np.ndarray:
+            up = np.zeros(2 * len(x), dtype=np.float64)
+            up[::2] = 2 * x
+            n = np.arange(129) - 64
+            fc = 7600 / 48000
+            h = 2 * fc * np.sinc(2 * fc * n) * np.hanning(129)
+            return np.convolve(up, h, mode="same")[::3].astype(np.float32)
+
+        def norm(t: str) -> str:
+            t = unicodedata.normalize("NFC", t.lower())
+            t = "".join(" " if unicodedata.category(c).startswith("P") else c for c in t)
+            return "".join(t.split())
+
+        def cer(ref: str, hyp: str) -> float:
+            r, h = norm(ref), norm(hyp)
+            d = list(range(len(h) + 1))
+            for i in range(1, len(r) + 1):
+                prev, d[0] = d[0], i
+                for j in range(1, len(h) + 1):
+                    cur = min(d[j] + 1, d[j - 1] + 1, prev + (r[i - 1] != h[j - 1]))
+                    prev, d[j] = d[j], cur
+            return d[len(h)] / max(1, len(r))
+
+        lm = get_lm(variant)
+        tts = StreamingTTS(lm, tok, smimi=smimi)
+        clips = []
+        for t_ in texts:
+            prompt = build_prompt(t_)
+            for seed in (1000, 1001, 1002):
+                inputs = tok(prompt, return_tensors="pt").to("cuda")
+                torch.manual_seed(seed)
+                with torch.inference_mode():
+                    ids = model.generate_audio(**inputs, **GEN_KW, do_sample=True)
+                    toks = ids[0].tolist()[inputs.input_ids.shape[1]:]
+                    base = mimi.decode(model.audio_tokens_to_codes(toks).cuda()).audio_values[0, 0].float().cpu().numpy()
+                r = tts.run(prompt, seed, mimi_mode="stream", keep_audio=True)
+                clips.append((t_, seed, "baseline", base))
+                clips.append((t_, seed, "optimized", r["_pcm"].numpy()))
+        asr = pipeline("automatic-speech-recognition", model="openai/whisper-large-v3",
+                       torch_dtype=torch.float16, device="cuda")
+        rows = []
+        for t_, seed, kind, x in clips:
+            lang = "hi" if t_["lang"] in ("hi", "hi_en_mixed") else "en"
+            hyp = asr({"raw": resample_24k_16k(x), "sampling_rate": 16000},
+                      generate_kwargs={"language": lang, "task": "transcribe"})["text"]
+            rows.append({"text_id": t_["id"], "lang": t_["lang"], "seed": seed, "kind": kind,
+                         "hyp": hyp, "cer": cer(t_["text"], hyp), "audio_s": len(x) / SR})
+        summ = {}
+        for kind in ("baseline", "optimized"):
+            for g in ["ALL", "en", "hinglish", "hi", "hi_en_mixed"]:
+                xs = [r["cer"] for r in rows if r["kind"] == kind and (g == "ALL" or r["lang"] == g)]
+                summ[f"{kind}/{g}"] = {"mean_cer": sum(xs) / len(xs), "median_cer": pct(xs, 50), "n": len(xs)}
+        print("asr", json.dumps(summ), flush=True)
+        return {"model": "openai/whisper-large-v3", "summary": summ, "rows": rows}
+
     t = perf_counter()
     smimi = StreamingMimi(mimi)
     out["build_s_mimi"] = perf_counter() - t
 
     # ------------------------------------------------------------------ quality
     if "quality" in parts_set:
-        q: dict = {}
-        aud = model.audio_token_ids(device="cuda")
+        try:
+            q: dict = {}
+            aud = model.audio_token_ids(device="cuda")
 
-        @torch.inference_mode()
-        def stock_generate(prompt, seed):
-            inputs = tok(prompt, return_tensors="pt").to("cuda")
-            torch.manual_seed(seed)
-            ids = model.generate_audio(**inputs, **GEN_KW, do_sample=True)
-            return [int(x) for x in ids[0].tolist()[inputs.input_ids.shape[1]:]]
+            @torch.inference_mode()
+            def stock_generate(prompt, seed):
+                inputs = tok(prompt, return_tensors="pt").to("cuda")
+                torch.manual_seed(seed)
+                ids = model.generate_audio(**inputs, **GEN_KW, do_sample=True)
+                return [int(x) for x in ids[0].tolist()[inputs.input_ids.shape[1]:]]
 
-        @torch.inference_mode()
-        def stock_tf(prompt, seq):
-            """Stock incremental decode (DynamicCache, as generate_audio): logits over audio ids + stop prob."""
-            inputs = tok(prompt, return_tensors="pt").to("cuda")
-            o = model(**inputs, use_cache=True, output_hidden_states=True, return_dict=True)
-            cache, mask = o.past_key_values, inputs.attention_mask
-            L, S = [o.logits[0, -1].index_select(0, aud).float()], [torch.sigmoid(model.stop_predictor(o.hidden_states[-1][:, -1:]).float()).view(())]
-            for t_ in seq[:-1]:
-                tt = torch.tensor([[t_]], device="cuda")
-                mask = torch.cat((mask, torch.ones_like(tt)), 1)
-                o = model(input_ids=tt, attention_mask=mask, past_key_values=cache, use_cache=True,
-                          output_hidden_states=True, return_dict=True)
-                cache = o.past_key_values
-                L.append(o.logits[0, -1].index_select(0, aud).float())
-                S.append(torch.sigmoid(model.stop_predictor(o.hidden_states[-1][:, -1:]).float()).view(()))
-            return torch.stack(L), torch.stack(S)
+            @torch.inference_mode()
+            def stock_tf(prompt, seq):
+                """Stock incremental decode (DynamicCache, as generate_audio): logits over audio ids + stop prob."""
+                inputs = tok(prompt, return_tensors="pt").to("cuda")
+                o = model(**inputs, use_cache=True, output_hidden_states=True, return_dict=True)
+                cache, mask = o.past_key_values, inputs.attention_mask
+                L, S = [o.logits[0, -1].index_select(0, aud).float()], [torch.sigmoid(model.stop_predictor(o.hidden_states[-1][:, -1:]).float()).view(())]
+                for t_ in seq[:-1]:
+                    tt = torch.tensor([[t_]], device="cuda")
+                    mask = torch.cat((mask, torch.ones_like(tt)), 1)
+                    o = model(input_ids=tt, attention_mask=mask, past_key_values=cache, use_cache=True,
+                              output_hidden_states=True, return_dict=True)
+                    cache = o.past_key_values
+                    L.append(o.logits[0, -1].index_select(0, aud).float())
+                    S.append(torch.sigmoid(model.stop_predictor(o.hidden_states[-1][:, -1:]).float()).view(()))
+                return torch.stack(L), torch.stack(S)
 
-        @torch.inference_mode()
-        def stock_full(prompt, seq):
-            """Stock single full-sequence forward (no cache): noise-floor reference."""
-            ids = tok(prompt).input_ids
-            x = torch.tensor([ids + seq[:-1]], device="cuda")
-            o = model(input_ids=x, output_hidden_states=True, return_dict=True)
-            P = len(ids)
-            lg = o.logits[0, P - 1:].index_select(-1, aud).float()
-            st = torch.sigmoid(model.stop_predictor(o.hidden_states[-1][:, P - 1:]).float()).view(-1)
-            return lg, st
+            @torch.inference_mode()
+            def stock_full(prompt, seq):
+                """Stock single full-sequence forward (no cache): noise-floor reference."""
+                ids = tok(prompt).input_ids
+                x = torch.tensor([ids + seq[:-1]], device="cuda")
+                o = model(input_ids=x, output_hidden_states=True, return_dict=True)
+                P = len(ids)
+                lg = o.logits[0, P - 1:].index_select(-1, aud).float()
+                st = torch.sigmoid(model.stop_predictor(o.hidden_states[-1][:, P - 1:]).float()).view(-1)
+                return lg, st
 
-        @torch.inference_mode()
-        def fast_tf(lm, prompt, seq):
-            ids = tok(prompt).input_ids
-            lm.prefill(ids)
-            L, S = [lm.logits_buf.float().clone()], [lm.stop_prob().clone()]
-            for t_ in seq[:-1]:
-                lm.forward_token(t_)
-                L.append(lm.logits_buf.float().clone())
-                S.append(lm.stop_prob().clone())
-            return torch.stack(L), torch.stack(S)
+            @torch.inference_mode()
+            def fast_tf(lm, prompt, seq):
+                ids = tok(prompt).input_ids
+                lm.prefill(ids)
+                L, S = [lm.logits_buf.float().clone()], [lm.stop_prob().clone()]
+                for t_ in seq[:-1]:
+                    lm.forward_token(t_)
+                    L.append(lm.logits_buf.float().clone())
+                    S.append(lm.stop_prob().clone())
+                return torch.stack(L), torch.stack(S)
 
-        def compare(ref, test):
-            (lr, sr), (lt, st) = ref, test
-            n = min(len(lr), len(lt))
-            lr, lt, sr, st = lr[:n], lt[:n], sr[:n], st[:n]
-            res = {"positions": n,
-                   "top1_agree": float((lr.argmax(-1) == lt.argmax(-1)).float().mean()),
-                   "max_abs_logit_diff": float((lr - lt).abs().max()),
-                   "stop_decision_agree": float(((sr > 0.5) == (st > 0.5)).float().mean()),
-                   "stop_prob_max_abs_diff": float((sr - st).abs().max())}
-            for T in (1.0, 0.8):
-                lp, lq = torch.log_softmax(lr / T, -1), torch.log_softmax(lt / T, -1)
-                kl = (lp.exp() * (lp - lq)).sum(-1)
-                res[f"kl_mean_T{T}"] = float(kl.mean())
-                res[f"kl_max_T{T}"] = float(kl.max())
-            # top-30 set overlap (the sampling support)
-            a, b = lr.topk(30, -1).indices, lt.topk(30, -1).indices
-            res["top30_overlap"] = float(torch.tensor([len(set(x.tolist()) & set(y.tolist())) / 30 for x, y in zip(a, b)]).mean())
-            return res
+            def compare(ref, test):
+                (lr, sr), (lt, st) = ref, test
+                n = min(len(lr), len(lt))
+                lr, lt, sr, st = lr[:n], lt[:n], sr[:n], st[:n]
+                res = {"positions": n,
+                       "top1_agree": float((lr.argmax(-1) == lt.argmax(-1)).float().mean()),
+                       "max_abs_logit_diff": float((lr - lt).abs().max()),
+                       "stop_decision_agree": float(((sr > 0.5) == (st > 0.5)).float().mean()),
+                       "stop_prob_max_abs_diff": float((sr - st).abs().max())}
+                for T in (1.0, 0.8):
+                    lp, lq = torch.log_softmax(lr / T, -1), torch.log_softmax(lt / T, -1)
+                    kl = (lp.exp() * (lp - lq)).sum(-1)
+                    res[f"kl_mean_T{T}"] = float(kl.mean())
+                    res[f"kl_max_T{T}"] = float(kl.max())
+                # top-30 set overlap (the sampling support)
+                a, b = lr.topk(30, -1).indices, lt.topk(30, -1).indices
+                res["top30_overlap"] = float(torch.tensor([len(set(x.tolist()) & set(y.tolist())) / 30 for x, y in zip(a, b)]).mean())
+                return res
 
-        tf_ids = ["en_medium", "hinglish_medium", "hi_medium", "hi_en_mixed_medium"][:n_tf_texts]
-        q["teacher_forced"] = {}
-        q["seeded"] = {}
-        q["mimi_stream_vs_full"] = {}
-        # stock references first (shared by every FastLM variant)
-        refs = {}
-        for tid in tf_ids:
-            prompt = build_prompt(tmap[tid])
-            seqs = {}
-            for s_ in range(seeds):
-                seed = 1000 + s_
-                t = perf_counter()
-                seqs[seed] = stock_generate(prompt, seed)
-                print(f"stock gen {tid} seed {seed}: {len(seqs[seed])} tok in {perf_counter() - t:.1f}s", flush=True)
-            seq = [x for x in seqs[1000] if x != END] + [END]
-            ref = stock_tf(prompt, seq)
-            full = stock_full(prompt, seq)
-            refs[tid] = (prompt, seqs, seq, ref)
-            q["teacher_forced"][tid] = {"stock_full_vs_stock_incremental (noise floor)": compare(ref, full)}
-        tf_variants = list(dict.fromkeys([v for v in tf_extra.split(",") if v] + [variant]))  # main variant last
-        for vname in tf_variants:
-            lm = get_lm(vname)
+            tf_ids = ["en_medium", "hinglish_medium", "hi_medium", "hi_en_mixed_medium"][:n_tf_texts]
+            q["teacher_forced"] = {}
+            q["seeded"] = {}
+            q["mimi_stream_vs_full"] = {}
+            # stock references first (shared by every FastLM variant)
+            refs = {}
             for tid in tf_ids:
-                prompt, _, seq, ref = refs[tid]
-                q["teacher_forced"][tid][f"fast[{vname}]_vs_stock_incremental"] = compare(ref, fast_tf(lm, prompt, seq))
-        for tid in tf_ids:
-            print(tid, json.dumps(q["teacher_forced"][tid]), flush=True)
-        # seeded generation + streaming Mimi exactness with the main variant
-        tts = StreamingTTS(lm, tok, smimi=smimi)
-        for tid in tf_ids:
-            prompt, seqs, _, _ = refs[tid]
-            q["seeded"][tid] = []
-            for seed, sseq in seqs.items():
-                r = tts.run(prompt, seed, mimi_mode="stream", keep_audio=True)
-                r_none = tts.run(prompt, seed, mimi_mode="none")  # LM alone, no concurrent Mimi
-                a = [x for x in sseq if x != END]
-                b = [x for x in r["tokens"] if x != END]
-                n_same = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
-                q["seeded"][tid].append({"seed": seed, "stock_len": len(a), "fast_len": len(b),
-                                         "identical": a == b, "common_prefix": n_same,
-                                         "fast_same_with_and_without_concurrent_mimi": r_none["tokens"] == r["tokens"],
-                                         "stock_frames": len(a) // Q, "fast_frames": r["frames"]})
-                # streaming Mimi vs full HF decode of the same codes
-                codes = model.audio_tokens_to_codes(r["tokens"]).cuda()
-                with torch.inference_mode():
-                    full_pcm = mimi.decode(codes).audio_values[0, 0].float()
-                sp = r["_pcm"].cuda()
-                n = min(len(sp), len(full_pcm))
-                err = (sp[:n] - full_pcm[:n])
-                q["mimi_stream_vs_full"][f"{tid}/{seed}"] = {
-                    "samples": n, "max_abs_diff": float(err.abs().max()),
-                    "snr_db": float(10 * torch.log10(full_pcm[:n].pow(2).sum() / err.pow(2).sum().clamp_min(1e-20))),
-                    "len_stream": len(sp), "len_full": len(full_pcm)}
-                if seed == 1000:
-                    wavs[f"{tid}_seed{seed}_stream.wav"] = wav_bytes(r["_pcm"])
-            print(tid, json.dumps(q["seeded"][tid]), json.dumps({k: v for k, v in q["mimi_stream_vs_full"].items() if k.startswith(tid)}), flush=True)
-        out["quality"] = q
+                prompt = build_prompt(tmap[tid])
+                seqs = {}
+                for s_ in range(seeds):
+                    seed = 1000 + s_
+                    t = perf_counter()
+                    seqs[seed] = stock_generate(prompt, seed)
+                    print(f"stock gen {tid} seed {seed}: {len(seqs[seed])} tok in {perf_counter() - t:.1f}s", flush=True)
+                seq = [x for x in seqs[1000] if x != END] + [END]
+                ref = stock_tf(prompt, seq)
+                full = stock_full(prompt, seq)
+                refs[tid] = (prompt, seqs, seq, ref)
+                q["teacher_forced"][tid] = {"stock_full_vs_stock_incremental (noise floor)": compare(ref, full)}
+            tf_variants = list(dict.fromkeys([v for v in tf_extra.split(",") if v] + [variant]))  # main variant last
+            for vname in tf_variants:
+                lm = get_lm(vname)
+                for tid in tf_ids:
+                    prompt, _, seq, ref = refs[tid]
+                    q["teacher_forced"][tid][f"fast[{vname}]_vs_stock_incremental"] = compare(ref, fast_tf(lm, prompt, seq))
+            for tid in tf_ids:
+                print(tid, json.dumps(q["teacher_forced"][tid]), flush=True)
+            # seeded generation + streaming Mimi exactness with the main variant
+            tts = StreamingTTS(lm, tok, smimi=smimi)
+            for tid in tf_ids:
+                prompt, seqs, _, _ = refs[tid]
+                q["seeded"][tid] = []
+                for seed, sseq in seqs.items():
+                    r = tts.run(prompt, seed, mimi_mode="stream", keep_audio=True)
+                    r_none = tts.run(prompt, seed, mimi_mode="none")  # LM alone, no concurrent Mimi
+                    a = [x for x in sseq if x != END]
+                    b = [x for x in r["tokens"] if x != END]
+                    n_same = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+                    q["seeded"][tid].append({"seed": seed, "stock_len": len(a), "fast_len": len(b),
+                                             "identical": a == b, "common_prefix": n_same,
+                                             "fast_same_with_and_without_concurrent_mimi": r_none["tokens"] == r["tokens"],
+                                             "stock_frames": len(a) // Q, "fast_frames": r["frames"]})
+                    # streaming Mimi vs full HF decode of the same codes
+                    codes = model.audio_tokens_to_codes(r["tokens"]).cuda()
+                    with torch.inference_mode():
+                        full_pcm = mimi.decode(codes).audio_values[0, 0].float()
+                    sp = r["_pcm"].cuda()
+                    n = min(len(sp), len(full_pcm))
+                    err = (sp[:n] - full_pcm[:n])
+                    q["mimi_stream_vs_full"][f"{tid}/{seed}"] = {
+                        "samples": n, "max_abs_diff": float(err.abs().max()),
+                        "snr_db": float(10 * torch.log10(full_pcm[:n].pow(2).sum() / err.pow(2).sum().clamp_min(1e-20))),
+                        "len_stream": len(sp), "len_full": len(full_pcm)}
+                    if seed == 1000:
+                        wavs[f"{tid}_seed{seed}_stream.wav"] = wav_bytes(r["_pcm"])
+                print(tid, json.dumps(q["seeded"][tid]), json.dumps({k: v for k, v in q["mimi_stream_vs_full"].items() if k.startswith(tid)}), flush=True)
+            out["quality"] = q
+        except Exception as e:  # never lose the other parts
+            import traceback
+            traceback.print_exc()
+            out["quality_error"] = repr(e)[:2000]
 
     # ------------------------------------------------------------------ variants (ablation)
     if "variants" in parts_set:
@@ -461,6 +530,15 @@ def run_fast(parts: str = "quality,variants", runs: int = 3, warmup: int = 3,
         print("codec warm-up", sil["codec_warmup"], flush=True)
         out["silence"] = sil
 
+    # ------------------------------------------------------------------ ASR CER (baseline vs optimized)
+    if "asr" in parts_set:
+        try:
+            out["asr"] = asr_check()
+        except Exception as e:  # never lose the other parts
+            import traceback
+            traceback.print_exc()
+            out["asr_error"] = repr(e)[:2000]
+
     volume.commit()  # keep inductor / triton caches for the next run
     out = json.loads(json.dumps(out))  # guarantee plain JSON types
     out["wavs"] = wavs
@@ -468,7 +546,7 @@ def run_fast(parts: str = "quality,variants", runs: int = 3, warmup: int = 3,
 
 
 @app.local_entrypoint()
-def main(parts: str = "quality,variants", runs: int = 3, warmup: int = 3, variant: str = "compile",
+def main(parts: str = "quality,variants", runs: int = 3, warmup: int = 3, variant: str = "c_kvb_f32_pf",
          n_tf_texts: int = 3, seeds: int = 2, out: str = "results/fast_smoke.json",
          plan: str = "eager:hf_first,graphs:hf_first,graphs:stream,compile:hf_first,compile:stream",
          tf_extra: str = ""):
