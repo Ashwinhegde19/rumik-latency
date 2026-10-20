@@ -172,6 +172,21 @@ sample-to-sample variation (different sampled token sequences). Listening sample
   start at 32 ms with about 240 ms of silence first. Suppressing the silence codes during sampling would
   remove it, but it changes the model's distribution, so it is not applied.
 
+## Independent quality audit
+
+A second pass re-checked the optimized path without relying on the gates above. The code was reviewed line by line against the pinned HF modeling code, and 160 matched-seed pairs (10 texts x 16 seeds, same H100, same sampling settings) were generated through both paths and scored.
+
+- Intelligibility: Whisper-large-v3 and MMS-1b-all CER/WER show no distinguishable difference for English, Hinglish, Hindi or code-mixed text (paired bootstrap 95% CI plus sign-flip test).
+- Naturalness: UTMOSv2 2.84 vs 2.86 and UTMOS22, no difference.
+- Speaker: ECAPA and WavLM-SV cosine similarity to a stock reference, 0.873 vs 0.872.
+- Duration, leading and trailing silence, clipping, loudness and spectrum: no difference. A stock-vs-stock null check (two seed batches) shows the same spread.
+- Teacher forcing on 15,228 positions spanning every KV bucket: against an fp32 reference the optimized path is closer than stock bf16 (KL 5.7e-4 vs 7.9e-4, closer in 20/20 sequences). KV buckets have no measurable effect.
+- Streaming Mimi vs full HF decode of the same tokens: median 66 dB SNR, no drift on clips over 10 s.
+- Code review: nothing changes the output distribution. Known limits: prompts over 255 tokens are rejected, sampling settings are fixed at graph capture, one request per engine instance.
+- Not covered: human listening, speakers other than Ira, IndicConformer (gated).
+
+Scripts are in `eval/`, results in `results/audit/` (`report.txt`, `summary.json`); the generated clips are not checked in. `samples/listening_pack/` holds stock/optimized pairs for the same text and seed.
+
 ## What remains / next levers
 
 - The bf16 decode step (3.05 ms GPU) is about 80% GEMV at about 2.5 TB/s. Weight-only int8 (or fp8) on the

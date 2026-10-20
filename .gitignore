@@ -1,2 +1,4 @@
 .venv/
 __pycache__/
+results/audit/wavs/
+results/audit/smoke_wavs/

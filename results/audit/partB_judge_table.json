@@ -1,0 +1,389 @@
+{
+ "rows": [
+  {
+   "text_id": "en_short",
+   "kind": "baseline",
+   "utmosv2": 2.68359375,
+   "utmos22": 3.8237810134887695,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.0,
+   "asr": {
+    "whisper_en": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_eng": {
+     "cer": 0.0,
+     "wer": 0.0
+    }
+   }
+  },
+  {
+   "text_id": "en_short",
+   "kind": "optimized",
+   "utmosv2": 2.94140625,
+   "utmos22": 3.846550703048706,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.0,
+   "asr": {
+    "whisper_en": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_eng": {
+     "cer": 0.0,
+     "wer": 0.2857142857142857
+    }
+   }
+  },
+  {
+   "text_id": "en_medium",
+   "kind": "baseline",
+   "utmosv2": 3.140625,
+   "utmos22": 4.238574981689453,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.045454545454545456,
+   "asr": {
+    "whisper_en": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_eng": {
+     "cer": 0.045454545454545456,
+     "wer": 0.125
+    }
+   }
+  },
+  {
+   "text_id": "en_medium",
+   "kind": "optimized",
+   "utmosv2": 2.705078125,
+   "utmos22": 3.9296605587005615,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.0,
+   "asr": {
+    "whisper_en": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_eng": {
+     "cer": 0.0,
+     "wer": 0.0
+    }
+   }
+  },
+  {
+   "text_id": "en_long",
+   "kind": "baseline",
+   "utmosv2": 3.2421875,
+   "utmos22": 3.998040199279785,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.0,
+   "asr": {
+    "whisper_en": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_eng": {
+     "cer": 0.0,
+     "wer": 0.0
+    }
+   }
+  },
+  {
+   "text_id": "en_long",
+   "kind": "optimized",
+   "utmosv2": 3.375,
+   "utmos22": 4.125286102294922,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.014598540145985401,
+   "asr": {
+    "whisper_en": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_eng": {
+     "cer": 0.014598540145985401,
+     "wer": 0.07407407407407407
+    }
+   }
+  },
+  {
+   "text_id": "hinglish_short",
+   "kind": "baseline",
+   "utmosv2": 3.3671875,
+   "utmos22": 3.3571455478668213,
+   "cer_whisper": 0.034482758620689655,
+   "cer_mms": 0.06896551724137931,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.034482758620689655,
+     "wer": 0.1
+    },
+    "mms_hin": {
+     "cer": 0.06896551724137931,
+     "wer": 0.2
+    },
+    "whisper_en_roman": {
+     "cer": 0.8536585365853658,
+     "wer": 1.0
+    }
+   }
+  },
+  {
+   "text_id": "hinglish_short",
+   "kind": "optimized",
+   "utmosv2": 3.21875,
+   "utmos22": 3.2631101608276367,
+   "cer_whisper": 0.034482758620689655,
+   "cer_mms": 0.20689655172413793,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.034482758620689655,
+     "wer": 0.1
+    },
+    "mms_hin": {
+     "cer": 0.20689655172413793,
+     "wer": 0.5
+    },
+    "whisper_en_roman": {
+     "cer": 0.8536585365853658,
+     "wer": 1.0
+    }
+   }
+  },
+  {
+   "text_id": "hinglish_medium",
+   "kind": "baseline",
+   "utmosv2": 2.603515625,
+   "utmos22": 2.978626251220703,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.08196721311475409,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.0,
+     "wer": 0.11764705882352941
+    },
+    "mms_hin": {
+     "cer": 0.08196721311475409,
+     "wer": 0.4117647058823529
+    },
+    "whisper_en_roman": {
+     "cer": 0.8493150684931506,
+     "wer": 1.0
+    }
+   }
+  },
+  {
+   "text_id": "hinglish_medium",
+   "kind": "optimized",
+   "utmosv2": 3.03125,
+   "utmos22": 3.0124731063842773,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.08196721311475409,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.0,
+     "wer": 0.11764705882352941
+    },
+    "mms_hin": {
+     "cer": 0.08196721311475409,
+     "wer": 0.23529411764705882
+    },
+    "whisper_en_roman": {
+     "cer": 0.8493150684931506,
+     "wer": 1.0
+    }
+   }
+  },
+  {
+   "text_id": "hinglish_long",
+   "kind": "baseline",
+   "utmosv2": 2.935546875,
+   "utmos22": 3.5201001167297363,
+   "cer_whisper": 0.0423728813559322,
+   "cer_mms": 0.03389830508474576,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.0423728813559322,
+     "wer": 0.10810810810810811
+    },
+    "mms_hin": {
+     "cer": 0.03389830508474576,
+     "wer": 0.21621621621621623
+    },
+    "whisper_en_roman": {
+     "cer": 0.06711409395973154,
+     "wer": 0.1891891891891892
+    }
+   }
+  },
+  {
+   "text_id": "hinglish_long",
+   "kind": "optimized",
+   "utmosv2": 2.89453125,
+   "utmos22": 3.5141727924346924,
+   "cer_whisper": 0.025423728813559324,
+   "cer_mms": 0.05084745762711865,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.025423728813559324,
+     "wer": 0.05405405405405406
+    },
+    "mms_hin": {
+     "cer": 0.05084745762711865,
+     "wer": 0.2972972972972973
+    },
+    "whisper_en_roman": {
+     "cer": 0.06040268456375839,
+     "wer": 0.13513513513513514
+    }
+   }
+  },
+  {
+   "text_id": "hi_short",
+   "kind": "baseline",
+   "utmosv2": 2.154296875,
+   "utmos22": 3.0795962810516357,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.0,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_hin": {
+     "cer": 0.0,
+     "wer": 0.0
+    }
+   }
+  },
+  {
+   "text_id": "hi_short",
+   "kind": "optimized",
+   "utmosv2": 2.84375,
+   "utmos22": 3.1560990810394287,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.045454545454545456,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.0,
+     "wer": 0.0
+    },
+    "mms_hin": {
+     "cer": 0.045454545454545456,
+     "wer": 0.16666666666666666
+    }
+   }
+  },
+  {
+   "text_id": "hi_medium",
+   "kind": "baseline",
+   "utmosv2": 2.619140625,
+   "utmos22": 3.810950994491577,
+   "cer_whisper": 0.1346153846153846,
+   "cer_mms": 0.09615384615384616,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.1346153846153846,
+     "wer": 0.2
+    },
+    "mms_hin": {
+     "cer": 0.09615384615384616,
+     "wer": 0.26666666666666666
+    }
+   }
+  },
+  {
+   "text_id": "hi_medium",
+   "kind": "optimized",
+   "utmosv2": 2.6953125,
+   "utmos22": 3.8506617546081543,
+   "cer_whisper": 0.057692307692307696,
+   "cer_mms": 0.057692307692307696,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.057692307692307696,
+     "wer": 0.13333333333333333
+    },
+    "mms_hin": {
+     "cer": 0.057692307692307696,
+     "wer": 0.13333333333333333
+    }
+   }
+  },
+  {
+   "text_id": "hi_long",
+   "kind": "baseline",
+   "utmosv2": 3.14453125,
+   "utmos22": 3.2723543643951416,
+   "cer_whisper": 0.017699115044247787,
+   "cer_mms": 0.017699115044247787,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.017699115044247787,
+     "wer": 0.13333333333333333
+    },
+    "mms_hin": {
+     "cer": 0.017699115044247787,
+     "wer": 0.13333333333333333
+    }
+   }
+  },
+  {
+   "text_id": "hi_long",
+   "kind": "optimized",
+   "utmosv2": 3.0234375,
+   "utmos22": 3.1032872200012207,
+   "cer_whisper": 0.035398230088495575,
+   "cer_mms": 0.017699115044247787,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.035398230088495575,
+     "wer": 0.16666666666666666
+    },
+    "mms_hin": {
+     "cer": 0.017699115044247787,
+     "wer": 0.1
+    }
+   }
+  },
+  {
+   "text_id": "hi_en_mixed_medium",
+   "kind": "baseline",
+   "utmosv2": 2.455078125,
+   "utmos22": 3.49904203414917,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.02,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.0,
+     "wer": 0.14285714285714285
+    },
+    "mms_hin": {
+     "cer": 0.02,
+     "wer": 0.07142857142857142
+    }
+   }
+  },
+  {
+   "text_id": "hi_en_mixed_medium",
+   "kind": "optimized",
+   "utmosv2": 2.63671875,
+   "utmos22": 3.7082552909851074,
+   "cer_whisper": 0.0,
+   "cer_mms": 0.12,
+   "asr": {
+    "whisper_hi": {
+     "cer": 0.0,
+     "wer": 0.14285714285714285
+    },
+    "mms_hin": {
+     "cer": 0.12,
+     "wer": 0.5
+    }
+   }
+  }
+ ],
+ "errors": []
+}
