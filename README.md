@@ -52,12 +52,35 @@ Verified two ways, both against the unmodified stock path:
 Full tables and method: [docs/REPORT.md](docs/REPORT.md). Stock/optimized pairs for listening:
 [`samples/listening_pack/`](samples/listening_pack/). Not yet done: a human listening test for Hindi and Hinglish.
 
+## First audible speech: 110 ms → 34 ms with a start prefix
+
+The model always begins with three near-silent frames (240 ms) before speech, because its training clips began
+quiet and the frozen Mimi encoder turns a quiet start into a fixed code sequence the model learned. The engine
+can place that known start into the prompt instead of sampling it: `tts.run(..., start_prefix=START_PREFIX)` adds
+the model's own typical three frames (taken verbatim from a real generation) during prefill, decodes them only to
+warm the codec state, and outputs from the first generated frame, which is then speech.
+
+| frames supplied | clips | speech in the first generated frame | first audible speech, p50 / p90 |
+|---:|---:|---:|---|
+| 0 (default) | 80 | 0 | 110 / 136 ms |
+| 1 | 40 | 0 (model adds two more) | 84 / 85 ms |
+| 2 | 40 | 17 | 59 / 60 ms |
+| **3** (`START_PREFIX`) | 80 | **62** (78 within one frame) | **34 / 60 ms** |
+| 4 | 40 | 3 (model reads it as a pause, stays silent ~10 frames) | 268 / 373 ms |
+
+Quality with the three-frame prefix versus none, 80 paired clips, same judges as the audit: Whisper CER −0.000
+[−0.004, +0.003], MMS CER −0.003 [−0.024, +0.015], UTMOS22 −0.01 [−0.11, +0.08], ECAPA +0.004 [−0.003, +0.011],
+clip length −1.6 frames [−4.0, +0.8]; every 95% interval spans zero. Cost: the first frame arrives 2 ms later.
+The prefix must be exactly the model's typical start: a less typical real start lowered UTMOS22 by 0.16, and
+four frames triple the latency. Same model weights, same sampling; off by default.
+Experiment and tables: [`results/prefix_fix/report.md`](results/prefix_fix/report.md), `eval/prefix_fix_gen.py`.
+
 ## Use the fast path
 
 ```python
 import torch, soundfile as sf
 from transformers import AutoModelForCausalLM, AutoTokenizer, MimiModel
-from rumik_fast import FastLM, StreamingMimi, StreamingTTS
+from rumik_fast import START_PREFIX, FastLM, StreamingMimi, StreamingTTS
 
 repo = "rumik-ai/rumik-oss-1"  # tested at revision 0ed3c98684e14350c910129c0efa179841c41ad2
 tok = AutoTokenizer.from_pretrained(repo, trust_remote_code=True)
@@ -70,7 +93,8 @@ lm = FastLM(model, use_compile=True, kv_buckets=(256, 512, 1024), attn="f32",
 tts = StreamingTTS(lm, tok, smimi=StreamingMimi(mimi))
 
 prompt = '<text>Ira: <description="warm, Indian English accent, steady pace"> Namaste, aaj ka weather bahut accha hai.<audio>'
-r = tts.run(prompt, seed=1000, keep_audio=True)
+r = tts.run(prompt, seed=1000, keep_audio=True)                      # first audible speech ~110 ms
+# r = tts.run(prompt, seed=1000, keep_audio=True, start_prefix=START_PREFIX)  # ~34 ms, see above
 print(f"first audio at {r['ttfa_s'] * 1e3:.1f} ms, {r['audio_seconds']:.1f} s of speech")
 sf.write("out.wav", r["_pcm"].float().clamp(-1, 1).numpy(), 24000)
 ```
@@ -104,8 +128,8 @@ modal run bench_modal.py
 - Temperature and top-k are fixed when the graphs are captured.
 - One request at a time per engine instance; no batching.
 - Measured on H100 only, with the Ira voice only.
-- The model emits ~3 near-silent frames before speech (first audible sound at ~110 ms). That is the model's
-  output, not this code; see the report.
+- The model emits ~3 near-silent frames before speech (first audible sound at ~110 ms by default). `start_prefix`
+  removes them at inference time; the data-side fix (trimmed training clips) is the model owner's.
 
 ## Layout
 
@@ -114,8 +138,8 @@ modal run bench_modal.py
 | `rumik_fast.py` | the optimized engine: `FastLM`, `StreamingMimi`, `StreamingTTS` |
 | `bench_fast.py` | Modal benchmark, ablation and quality gates for the optimized path |
 | `bench_modal.py` | Modal benchmark for the stock path (unchanged baseline) |
-| `eval/` | independent quality audit: matched-seed generation, judges, statistics |
-| `results/` | raw timings and audit data (`baseline.json`, `optimized.json`, `audit/report.txt`) |
+| `eval/` | independent quality audit (matched-seed generation, judges, statistics); the start-prefix experiment (`prefix_fix_*.py`); Mimi encoder start-code test |
+| `results/` | raw timings and audit data (`baseline.json`, `optimized.json`, `audit/report.txt`, `prefix_fix/report.md`) |
 | `samples/` | generated audio: stock, optimized, and matched listening pairs |
 | `docs/REPORT.md` | full write-up: ablation, method, quality gates, leading silence, audit, next levers |
 

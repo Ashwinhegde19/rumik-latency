@@ -55,6 +55,16 @@ def _rope_interleaved(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> 
     return (xf * cos + rot * sin).to(x.dtype)
 
 
+# The model's own typical start: three near-silent frames (codebook-0 codes 1049, 127, 1880), taken verbatim from a
+# real generation (quality-audit run hinglish_medium_seed1009). Passed as StreamingTTS.run(..., start_prefix=START_PREFIX)
+# they are processed in prefill, so the first generated frame is speech: first audible audio 110 -> 34 ms p50 on an
+# H100 with output quality unchanged (results/prefix_fix/report.md). Exactly three frames: four reads as a pause and
+# the model stays silent longer. Only valid for this model revision and codec.
+START_PREFIX = [269400, 272769, 263994, 264915, 264060, 277093, 262478, 267047,
+                262024, 272769, 264666, 263331, 264860, 265453, 268822, 274335,
+                276048, 261737, 273482, 263331, 271692, 264837, 267614, 274335]
+
+
 class FastLM:
     @torch.inference_mode()
     def __init__(
@@ -633,22 +643,31 @@ class StreamingTTS:
         self.silence_dbfs = silence_dbfs
         self.mstream = torch.cuda.Stream()
         self.spf = 1920
-        mf = lm.max_new // lm.Q + 2
+        mf = lm.max_new // lm.Q + 2 + 8  # + room for start-prefix frames
         self.pin_codes = torch.zeros(mf, 1, lm.Q, 1, dtype=torch.long).pin_memory()
         self.pin_pcm = torch.zeros(mf, self.spf, dtype=torch.float32).pin_memory()
 
     @torch.inference_mode()
-    def run(self, prompt: str, seed: int, mimi_mode: str = "stream", keep_audio: bool = False) -> dict:
+    def run(self, prompt: str, seed: int, mimi_mode: str = "stream", keep_audio: bool = False,
+            start_prefix: list[int] | None = None) -> dict:
+        """start_prefix: audio token ids (whole frames) placed after the prompt in prefill, e.g. START_PREFIX.
+        They are decoded to warm the Mimi state but are not part of the output; `frames`/`tokens` exclude them."""
         lm, Q = self.lm, self.Q
+        pre = list(start_prefix or [])
+        n_pre = len(pre) // Q
+        assert len(pre) == n_pre * Q, "start_prefix must be whole frames (Q token ids per frame)"
         torch.cuda.synchronize()
         t0 = perf_counter()
         ev0 = torch.cuda.Event(enable_timing=True)
         ev0.record()
-        ids = self.tok(prompt).input_ids
+        ids = self.tok(prompt).input_ids + pre
         torch.manual_seed(seed)
         if mimi_mode == "stream":
             with torch.cuda.stream(self.mstream):
                 self.smimi.reset()
+                for j in range(n_pre):  # prefix frames warm the decoder state; their audio is never output
+                    self.pin_codes[j].view(-1).copy_(torch.tensor([(t - lm.first) // Q for t in pre[j * Q:(j + 1) * Q]]))
+                    self.pin_pcm[j].copy_(self.smimi.decode_frame(self.pin_codes[j]), non_blocking=True)
         lm.prefill(ids)
         ev_pre = torch.cuda.Event(enable_timing=True)
         ev_pre.record()
@@ -679,7 +698,7 @@ class StreamingTTS:
         frame_chunk: list[int] = []
         t_first_audio = None
         first_chunk_decode = None
-        n_frames = 0
+        n_frames = n_pre
         c = 0
         done = False
         while not done and c < len(chunk_ev):
@@ -712,11 +731,11 @@ class StreamingTTS:
                         self.pin_pcm[k].copy_(pcm, non_blocking=True)
                     frame_ev.append((es, ee))
                     frame_chunk.append(c)
-                    if k == 0:
+                    if k == n_pre:  # first generated frame
                         ee.synchronize()
                         t_first_audio = perf_counter() - t0
                         first_chunk_decode = es.elapsed_time(ee) / 1e3
-                elif mimi_mode == "hf_first" and k == 0:
+                elif mimi_mode == "hf_first" and k == n_pre:
                     with torch.cuda.stream(self.mstream):
                         td = perf_counter()
                         codes = torch.tensor(f, device=lm.dev).view(1, Q, 1)
@@ -734,10 +753,11 @@ class StreamingTTS:
         chunk_t = [ms(e) for e in chunk_ev[:c]]
         res = {
             "seed": seed,
-            "prompt_tokens": len(ids),
+            "prompt_tokens": len(ids) - len(pre),
+            "prefix_frames": n_pre,
             "audio_tokens": len([t for t in tokens if t != lm.end_id]),
-            "frames": n_frames,
-            "audio_seconds": n_frames * 0.08,
+            "frames": n_frames - n_pre,
+            "audio_seconds": (n_frames - n_pre) * 0.08,
             "stopped_by": stopped_by,
             "prefill_s": ms(ev_pre),
             "first_frame_tokens_s": chunk_t[0] if chunk_t else None,
@@ -754,11 +774,11 @@ class StreamingTTS:
         if mimi_mode == "stream" and frame_ev:
             ready = [ms(ee) for _, ee in frame_ev]
             gpu_ms = [es.elapsed_time(ee) for es, ee in frame_ev]
-            pcm = self.pin_pcm[:n_frames]
+            pcm = self.pin_pcm[n_pre:n_frames]
             dbfs = (20 * torch.log10(pcm.pow(2).mean(-1).sqrt().clamp_min(1e-9))).tolist()
             k = next((i for i, d in enumerate(dbfs) if d > self.silence_dbfs), None)
             # playback starts when frame 0 is ready; frame i is due at ready[0] + 0.08 i
-            lateness = [ready[i] - (ready[0] + 0.08 * i) for i in range(n_frames)]
+            lateness = [ready[i] - (ready[0] + 0.08 * i) for i in range(n_frames - n_pre)]
             res.update({
                 "frame_ready_s": ready,
                 "frame_dbfs": dbfs,

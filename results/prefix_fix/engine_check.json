@@ -1,0 +1,145 @@
+{
+ "gpu": "NVIDIA H100 80GB HBM3",
+ "cases": [
+  {
+   "key": "hi_en_mixed_medium_seed1000_k0",
+   "tokens_equal": true,
+   "n": [
+    576,
+    576
+   ],
+   "frames": [
+    72,
+    72
+   ],
+   "prefix_frames": 0,
+   "first_nonsilent_frame": [
+    2,
+    2
+   ],
+   "ttfa_nonsilent_ms": [
+    84.7,
+    83.7
+   ],
+   "ttfa_ms": 32.2,
+   "audio_seconds": 5.76
+  },
+  {
+   "key": "hi_en_mixed_medium_seed1000_k3",
+   "tokens_equal": true,
+   "n": [
+    616,
+    616
+   ],
+   "frames": [
+    77,
+    77
+   ],
+   "prefix_frames": 3,
+   "first_nonsilent_frame": [
+    1,
+    1
+   ],
+   "ttfa_nonsilent_ms": [
+    59.3,
+    59.6
+   ],
+   "ttfa_ms": 33.0,
+   "audio_seconds": 6.16
+  },
+  {
+   "key": "en_short_seed1000_k0",
+   "tokens_equal": true,
+   "n": [
+    328,
+    328
+   ],
+   "frames": [
+    41,
+    41
+   ],
+   "prefix_frames": 0,
+   "first_nonsilent_frame": [
+    3,
+    3
+   ],
+   "ttfa_nonsilent_ms": [
+    109.9,
+    110.2
+   ],
+   "ttfa_ms": 32.0,
+   "audio_seconds": 3.2800000000000002
+  },
+  {
+   "key": "en_short_seed1000_k3",
+   "tokens_equal": true,
+   "n": [
+    288,
+    288
+   ],
+   "frames": [
+    36,
+    36
+   ],
+   "prefix_frames": 3,
+   "first_nonsilent_frame": [
+    2,
+    2
+   ],
+   "ttfa_nonsilent_ms": [
+    85.3,
+    100.9
+   ],
+   "ttfa_ms": 32.9,
+   "audio_seconds": 2.88
+  },
+  {
+   "key": "hinglish_long_seed1000_k0",
+   "tokens_equal": true,
+   "n": [
+    1392,
+    1392
+   ],
+   "frames": [
+    174,
+    174
+   ],
+   "prefix_frames": 0,
+   "first_nonsilent_frame": [
+    2,
+    2
+   ],
+   "ttfa_nonsilent_ms": [
+    84.4,
+    84.4
+   ],
+   "ttfa_ms": 32.2,
+   "audio_seconds": 13.92
+  },
+  {
+   "key": "hinglish_long_seed1000_k3",
+   "tokens_equal": true,
+   "n": [
+    1528,
+    1528
+   ],
+   "frames": [
+    191,
+    191
+   ],
+   "prefix_frames": 3,
+   "first_nonsilent_frame": [
+    1,
+    1
+   ],
+   "ttfa_nonsilent_ms": [
+    59.9,
+    60.0
+   ],
+   "ttfa_ms": 33.6,
+   "audio_seconds": 15.280000000000001
+  }
+ ],
+ "wall_s": 97.894387931,
+ "wall_clock_s": 108.02607107162476
+}

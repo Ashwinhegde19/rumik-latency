@@ -212,7 +212,7 @@ def main(wav_dir: str = "results/audit/wavs", include_partb: bool = True, out: s
                           "wav": (ROOT / "samples" / "optimized" / f"{tid}.wav").read_bytes()})
     if wav_dir:
         for f in sorted(Path(wav_dir).glob("*.wav")):
-            m = re.match(r"(.+)_seed(\d+)_(stock|optimized)\.wav$", f.name)
+            m = re.match(r"(.+?)_seed(\d+)_([A-Za-z0-9]+)\.wav$", f.name)
             if not m:
                 continue
             clips.append({"key": f"gen/{f.stem}", "lang": texts[m.group(1)]["lang"], "wav": f.read_bytes()})

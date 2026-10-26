@@ -2,3 +2,5 @@
 __pycache__/
 results/audit/wavs/
 results/audit/smoke_wavs/
+results/prefix_fix/wavs/
+results/prefix_fix_smoke/wavs/
