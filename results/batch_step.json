@@ -1,0 +1,182 @@
+{
+ "env": {
+  "gpu": "NVIDIA H100 80GB HBM3",
+  "torch": "2.8.0+cu128",
+  "revision": "0ed3c98684e14350c910129c0efa179841c41ad2",
+  "tf32_matmul": false,
+  "attn": "f32-reduction, as FastLM final",
+  "sampling": "top-k 30 + exponential, as FastLM"
+ },
+ "cfg": {
+  "batches": [
+   1,
+   2,
+   4,
+   8,
+   16,
+   32,
+   64,
+   128
+  ],
+  "buckets": [
+   512,
+   1024
+  ],
+  "iters": 200
+ },
+ "checks": {
+  "row0_vs_fastlm_max_abs_diff": 0.0,
+  "row0_vs_fastlm_top1_equal": true,
+  "identical_rows_max_abs_diff": 0.0,
+  "b4_row0_vs_b1_max_abs_diff": 0.0625
+ },
+ "results": [
+  {
+   "B": 1,
+   "Lb": 512,
+   "step_ms": 3.1670822143554687,
+   "tok_per_s_per_listener": 315.7480394627234,
+   "tok_per_s_total": 315.7480394627234,
+   "listener_realtime_x": 3.157480394627234,
+   "mem_alloc_gb": 11.731995136
+  },
+  {
+   "B": 1,
+   "Lb": 1024,
+   "step_ms": 3.241718444824219,
+   "tok_per_s_per_listener": 308.4783632571843,
+   "tok_per_s_total": 308.4783632571843,
+   "listener_realtime_x": 3.084783632571843,
+   "mem_alloc_gb": 11.731995136
+  },
+  {
+   "B": 2,
+   "Lb": 512,
+   "step_ms": 3.294991149902344,
+   "tok_per_s_per_listener": 303.4909517221731,
+   "tok_per_s_total": 606.9819034443462,
+   "listener_realtime_x": 3.034909517221731,
+   "mem_alloc_gb": 11.731995136
+  },
+  {
+   "B": 2,
+   "Lb": 1024,
+   "step_ms": 3.4118621826171873,
+   "tok_per_s_per_listener": 293.09507432475345,
+   "tok_per_s_total": 586.1901486495069,
+   "listener_realtime_x": 2.9309507432475344,
+   "mem_alloc_gb": 11.731995136
+  },
+  {
+   "B": 4,
+   "Lb": 512,
+   "step_ms": 3.3728887939453127,
+   "tok_per_s_per_listener": 296.4817582468489,
+   "tok_per_s_total": 1185.9270329873957,
+   "listener_realtime_x": 2.9648175824684895,
+   "mem_alloc_gb": 11.914248704
+  },
+  {
+   "B": 4,
+   "Lb": 1024,
+   "step_ms": 3.5782601928710935,
+   "tok_per_s_per_listener": 279.46542344580837,
+   "tok_per_s_total": 1117.8616937832335,
+   "listener_realtime_x": 2.7946542344580836,
+   "mem_alloc_gb": 11.914248704
+  },
+  {
+   "B": 8,
+   "Lb": 512,
+   "step_ms": 3.631455078125,
+   "tok_per_s_per_listener": 275.3717114728353,
+   "tok_per_s_total": 2202.973691782682,
+   "listener_realtime_x": 2.7537171147283526,
+   "mem_alloc_gb": 12.940822016
+  },
+  {
+   "B": 8,
+   "Lb": 1024,
+   "step_ms": 3.9637420654296873,
+   "tok_per_s_per_listener": 252.28685002529184,
+   "tok_per_s_total": 2018.2948002023347,
+   "listener_realtime_x": 2.5228685002529185,
+   "mem_alloc_gb": 12.940822016
+  },
+  {
+   "B": 16,
+   "Lb": 512,
+   "step_ms": 4.054452514648437,
+   "tok_per_s_per_listener": 246.64242493581412,
+   "tok_per_s_total": 3946.278798973026,
+   "listener_realtime_x": 2.466424249358141,
+   "mem_alloc_gb": 14.993075712
+  },
+  {
+   "B": 16,
+   "Lb": 1024,
+   "step_ms": 4.70461669921875,
+   "tok_per_s_per_listener": 212.55716755119715,
+   "tok_per_s_total": 3400.9146808191545,
+   "listener_realtime_x": 2.1255716755119716,
+   "mem_alloc_gb": 14.993075712
+  },
+  {
+   "B": 32,
+   "Lb": 512,
+   "step_ms": 4.787771301269531,
+   "tok_per_s_per_listener": 208.8654484676072,
+   "tok_per_s_total": 6683.69435096343,
+   "listener_realtime_x": 2.0886544846760717,
+   "mem_alloc_gb": 19.097395712
+  },
+  {
+   "B": 32,
+   "Lb": 1024,
+   "step_ms": 6.296163330078125,
+   "tok_per_s_per_listener": 158.82688354394892,
+   "tok_per_s_total": 5082.460273406366,
+   "listener_realtime_x": 1.5882688354394892,
+   "mem_alloc_gb": 19.097395712
+  },
+  {
+   "B": 64,
+   "Lb": 512,
+   "step_ms": 6.541800537109375,
+   "tok_per_s_per_listener": 152.8631138059538,
+   "tok_per_s_total": 9783.239283581042,
+   "listener_realtime_x": 1.5286311380595379,
+   "mem_alloc_gb": 27.307030528
+  },
+  {
+   "B": 64,
+   "Lb": 1024,
+   "step_ms": 9.732093505859375,
+   "tok_per_s_per_listener": 102.75281463314474,
+   "tok_per_s_total": 6576.180136521263,
+   "listener_realtime_x": 1.0275281463314474,
+   "mem_alloc_gb": 27.307030528
+  },
+  {
+   "B": 128,
+   "Lb": 512,
+   "step_ms": 9.629404907226563,
+   "tok_per_s_per_listener": 103.8485773144228,
+   "tok_per_s_total": 13292.617896246118,
+   "listener_realtime_x": 1.038485773144228,
+   "mem_alloc_gb": 43.725827072
+  },
+  {
+   "B": 128,
+   "Lb": 1024,
+   "step_ms": 15.3347216796875,
+   "tok_per_s_per_listener": 65.21148677413613,
+   "tok_per_s_total": 8347.070307089425,
+   "listener_realtime_x": 0.6521148677413613,
+   "mem_alloc_gb": 43.725827072
+  }
+ ],
+ "errors": [],
+ "wall_s": 509.015612066,
+ "wall_clock_remote_call_s": 520.7616429328918
+}

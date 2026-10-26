@@ -1,0 +1,250 @@
+{
+ "env": {
+  "gpu": "NVIDIA H100 80GB HBM3",
+  "torch": "2.8.0+cu128",
+  "mimi_dtype": "torch.float32",
+  "tf32": true
+ },
+ "cfg": {
+  "batches": [
+   1,
+   2,
+   4,
+   8,
+   16,
+   32,
+   64,
+   128
+  ],
+  "iters": 200
+ },
+ "checks": {
+  "identical_rows_max_abs_diff": 0.0,
+  "row0_vs_batch1_max_abs_diff": 0.0018542120233178139,
+  "row0_vs_batch1_snr_db": 59.04315948486328
+ },
+ "batch1_frame_ms": 2.0571028137207032,
+ "results": [
+  {
+   "B": 1,
+   "batched_ms": 2.0598646545410157,
+   "serial_ms": 2.0571028137207032
+  },
+  {
+   "B": 2,
+   "batched_ms": 2.1391539001464843,
+   "serial_ms": 4.1142056274414065
+  },
+  {
+   "B": 4,
+   "batched_ms": 2.216073303222656,
+   "serial_ms": 8.228411254882813
+  },
+  {
+   "B": 8,
+   "batched_ms": 2.3604415893554687,
+   "serial_ms": 16.456822509765626
+  },
+  {
+   "B": 16,
+   "batched_ms": 2.5567274475097657,
+   "serial_ms": 32.91364501953125
+  },
+  {
+   "B": 32,
+   "batched_ms": 3.406571044921875,
+   "serial_ms": 65.8272900390625
+  },
+  {
+   "B": 64,
+   "batched_ms": 5.825887451171875,
+   "serial_ms": 131.654580078125
+  },
+  {
+   "B": 128,
+   "batched_ms": 7.960975952148438,
+   "serial_ms": 263.30916015625
+  }
+ ],
+ "errors": [],
+ "wall_s": 11.871515079000002,
+ "wall_clock_remote_call_s": 21.374335289001465,
+ "combined_per_80ms_frame": [
+  {
+   "B": 1,
+   "Lb": 512,
+   "lm_8_steps_ms": 25.33665771484375,
+   "codec_batched_ms": 2.0598646545410157,
+   "codec_serial_ms": 2.0571028137207032,
+   "total_batched_ms": 27.396522369384765,
+   "total_serial_ms": 27.393760528564453,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 1,
+   "Lb": 1024,
+   "lm_8_steps_ms": 25.93374755859375,
+   "codec_batched_ms": 2.0598646545410157,
+   "codec_serial_ms": 2.0571028137207032,
+   "total_batched_ms": 27.993612213134767,
+   "total_serial_ms": 27.990850372314455,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 2,
+   "Lb": 512,
+   "lm_8_steps_ms": 26.35992919921875,
+   "codec_batched_ms": 2.1391539001464843,
+   "codec_serial_ms": 4.1142056274414065,
+   "total_batched_ms": 28.499083099365237,
+   "total_serial_ms": 30.47413482666016,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 2,
+   "Lb": 1024,
+   "lm_8_steps_ms": 27.2948974609375,
+   "codec_batched_ms": 2.1391539001464843,
+   "codec_serial_ms": 4.1142056274414065,
+   "total_batched_ms": 29.434051361083984,
+   "total_serial_ms": 31.409103088378906,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 4,
+   "Lb": 512,
+   "lm_8_steps_ms": 26.9831103515625,
+   "codec_batched_ms": 2.216073303222656,
+   "codec_serial_ms": 8.228411254882813,
+   "total_batched_ms": 29.19918365478516,
+   "total_serial_ms": 35.21152160644532,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 4,
+   "Lb": 1024,
+   "lm_8_steps_ms": 28.62608154296875,
+   "codec_batched_ms": 2.216073303222656,
+   "codec_serial_ms": 8.228411254882813,
+   "total_batched_ms": 30.842154846191406,
+   "total_serial_ms": 36.85449279785156,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 8,
+   "Lb": 512,
+   "lm_8_steps_ms": 29.051640625,
+   "codec_batched_ms": 2.3604415893554687,
+   "codec_serial_ms": 16.456822509765626,
+   "total_batched_ms": 31.41208221435547,
+   "total_serial_ms": 45.50846313476563,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 8,
+   "Lb": 1024,
+   "lm_8_steps_ms": 31.7099365234375,
+   "codec_batched_ms": 2.3604415893554687,
+   "codec_serial_ms": 16.456822509765626,
+   "total_batched_ms": 34.070378112792966,
+   "total_serial_ms": 48.16675903320312,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 16,
+   "Lb": 512,
+   "lm_8_steps_ms": 32.4356201171875,
+   "codec_batched_ms": 2.5567274475097657,
+   "codec_serial_ms": 32.91364501953125,
+   "total_batched_ms": 34.99234756469726,
+   "total_serial_ms": 65.34926513671874,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 16,
+   "Lb": 1024,
+   "lm_8_steps_ms": 37.63693359375,
+   "codec_batched_ms": 2.5567274475097657,
+   "codec_serial_ms": 32.91364501953125,
+   "total_batched_ms": 40.193661041259766,
+   "total_serial_ms": 70.55057861328126,
+   "keeps_up_batched": true,
+   "keeps_up_serial": true
+  },
+  {
+   "B": 32,
+   "Lb": 512,
+   "lm_8_steps_ms": 38.30217041015625,
+   "codec_batched_ms": 3.406571044921875,
+   "codec_serial_ms": 65.8272900390625,
+   "total_batched_ms": 41.708741455078126,
+   "total_serial_ms": 104.12946044921875,
+   "keeps_up_batched": true,
+   "keeps_up_serial": false
+  },
+  {
+   "B": 32,
+   "Lb": 1024,
+   "lm_8_steps_ms": 50.369306640625,
+   "codec_batched_ms": 3.406571044921875,
+   "codec_serial_ms": 65.8272900390625,
+   "total_batched_ms": 53.775877685546874,
+   "total_serial_ms": 116.1965966796875,
+   "keeps_up_batched": true,
+   "keeps_up_serial": false
+  },
+  {
+   "B": 64,
+   "Lb": 512,
+   "lm_8_steps_ms": 52.334404296875,
+   "codec_batched_ms": 5.825887451171875,
+   "codec_serial_ms": 131.654580078125,
+   "total_batched_ms": 58.16029174804687,
+   "total_serial_ms": 183.988984375,
+   "keeps_up_batched": true,
+   "keeps_up_serial": false
+  },
+  {
+   "B": 64,
+   "Lb": 1024,
+   "lm_8_steps_ms": 77.856748046875,
+   "codec_batched_ms": 5.825887451171875,
+   "codec_serial_ms": 131.654580078125,
+   "total_batched_ms": 83.68263549804688,
+   "total_serial_ms": 209.511328125,
+   "keeps_up_batched": false,
+   "keeps_up_serial": false
+  },
+  {
+   "B": 128,
+   "Lb": 512,
+   "lm_8_steps_ms": 77.0352392578125,
+   "codec_batched_ms": 7.960975952148438,
+   "codec_serial_ms": 263.30916015625,
+   "total_batched_ms": 84.99621520996095,
+   "total_serial_ms": 340.34439941406254,
+   "keeps_up_batched": false,
+   "keeps_up_serial": false
+  },
+  {
+   "B": 128,
+   "Lb": 1024,
+   "lm_8_steps_ms": 122.6777734375,
+   "codec_batched_ms": 7.960975952148438,
+   "codec_serial_ms": 263.30916015625,
+   "total_batched_ms": 130.63874938964844,
+   "total_serial_ms": 385.98693359375,
+   "keeps_up_batched": false,
+   "keeps_up_serial": false
+  }
+ ]
+}
